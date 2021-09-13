@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>Parking Spaces</h1>
+<ul>
+    {% for x in lotNo %}
+    <li id = {{ x[0] }}>{{ x[0] }}</li>
+    {% endfor %}
+</ul>
+
+<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+<script>
+    function update_values() {
+            $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
+
+            $.getJSON($SCRIPT_ROOT+"/getdata",
+                function(data) {
+
+                    for (let i = 0; i < data.length; i++) {
+
+                        if (data[i][1] == 1) {
+                            document.getElementById(data[i][0]).innerHTML = data[i][0] +" (Taken)";
+                        }
+                        else if (data[i][1] == -1) {
+                            document.getElementById(data[i][0]).innerHTML = data[i][0] +" (Open)";
+                        }
+                    }
+                });
+            }
+    update_values();
+    setInterval(function(){
+        update_values();
+    }, 1000);
+</script>
+
+
+
+{% endblock %}
+
+
