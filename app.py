@@ -26,7 +26,7 @@ testList = [[20, 20, 150, 100, 1, 1], [250, 250, 150, 100, 2, -1],[20, 400, 150,
 # Loads the parking lot
 @app.route('/testCanvasLoad')
 def testCanvasLoad():
-    return render_template('canvas.html', list=testList)
+    return render_template('lot.html', list=testList)
 
 # Grabs JSON data of our parking lot for AJAX in our website
 @app.route('/getdata')
