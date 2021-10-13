@@ -33,7 +33,7 @@ dbPass = None
 #   0. Base Template - Base HTML/CSS, Jinja2 blocks for other templates         (base.html)
 #   1. Create Account / Sign In Template                                        (signinregister.html)
 #   2. Settings Template                                                        (settings.html)
-#   3. Parking Lot Template                                                     (lot1.html)
+#   3. Parking Lot Template                                                     (lot.html)
 #   4. Notifications Template                                                   (notifications.html)
 #   5. QR Code Template(s)                                                      (qr.html) (qrresult.html)
 
