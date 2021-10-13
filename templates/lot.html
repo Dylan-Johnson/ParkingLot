@@ -56,7 +56,6 @@ c.addEventListener('click', function(event) {
    console.log(xVal, yVal);
    elements.forEach(function(ele) {
       if (yVal > ele.top && yVal < ele.top + ele.height && xVal > ele.left && xVal < ele.left + ele.width) {
-         //alert(ele.id);
          // A redirect to take a parking lot space
          window.location.href = "space/"+ele.id
       }
