@@ -1,7 +1,12 @@
-from flask import Flask, render_template, redirect
+from flask import Flask, render_template, redirect, request, flash, url_for, session
+from werkzeug.security import generate_password_hash, check_password_hash
 import json
+import mysql.connector
 
 app = Flask(__name__)
+app.config.from_mapping(
+        SECRET_KEY='dev'
+    )
 
 ##################### Values #####################
 #
@@ -10,21 +15,12 @@ app = Flask(__name__)
 lot1 = [[20, 20, 150, 100, 1, 1], [250, 250, 150, 100, 2, -1],[20, 400, 150, 100, 3, 1]]
 #
 #   1. SQL Values (DB, User, Pass, etc. Hardcoded in Python)
-db = None
-dbUser = None
-dbPass = None
-#       Schema:
-#       1a. User
-#           int pk UserID
-#           varchar(30) Username
-#           varchar Password (Hashed)
-#       1b. Privileges
-#           int UserID
-#           int LotID
-#           int PrivilegeLevel      0 - None       1 - Admin        2 - Owner
-#       1c. Notifications
-#           int LotId
-#           int ParkingSpace
+mydb = mysql.connector.connect(
+  host="parkinglotdb.crbn8ocjq7lr.us-east-2.rds.amazonaws.com",
+  user="admin",
+  password="group6csc440"
+)
+#   1a. Schema under Schema.sql in Github
 #   2. Stored (Cookie) Data
 #       2a. UserID  (Got to remember how to do this)
 
@@ -45,47 +41,104 @@ dbPass = None
 
 
 # Route 0:  Home Page                           (All)
-@app.route('/')
-def homepage():
+@app.route('/index')
+def index():
     ### Pseudocode ###
     #
     # Render the homepage template
     #
     ##################
-    return None
+
+    # Test for if the sessions hold
+    if session:
+        print("Session ID:",session['user_id'])
+    else:
+        print("No Session")
+
+    return render_template('base.html')
+
+# Route 0a: Load user session
+#@app.before_app_request
+#def load_session_user():
+#    user_id = session.get('user_id')
+#
+#    if user_id is None:
+#        g.user = None
+#    else:
+#        mycursor = mydb.cursor()
+#        g.user = mycursor.execute(
+#            'SELECT * FROM ParkingLotSite.Users WHERE ID = ?', (user_id,)
+#        ).fetchone()
+#        mycursor.close()
 
 # Route 1:  Create Account                      (All)
-@app.route('/register')
+@app.route('/register', methods=('GET', 'POST'))
 def register():
-    ### Pseudocode ###
-    #
-    # Allow the route to handle POST and GET info
-    # If POST:
-    #   Check if the username is valid
-    #   Check if the password is valid
-    #   If both are valid, sanitize data, place it into a database, return to login template
-    #   Otherwise, return an error message to the user through the register template
-    # Else if GET:
-    #   Render the register template
-    #
-    ##################
-    return None
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+
+        error = None
+
+        # Extra work here to make sure username is valid and sanitized
+        if not username: error = 'Username is required.'
+        # Extra work here to make sure passwords are relatively secure and sanitized
+        elif not password: error = 'Password is required.'
+
+        if error is None:
+            try:
+                mycursor = mydb.cursor()
+                executeString = "INSERT INTO ParkingLotSite.Users (username, password) VALUES (%s, %s)"
+                val = (username, generate_password_hash(password))
+                mycursor.execute(executeString,val)
+                mydb.commit()
+                mycursor.close()
+
+            except:
+                error = "Username is already taken."
+            else:
+                return redirect(url_for("login"))
+
+        flash(error)
+
+    return render_template('signinregister.html', condition = "Register")
 
 # Route 2:  Log In                              (All)
-@app.route('/login')
+@app.route('/login', methods=('GET', 'POST'))
 def login():
-    ### Pseudocode ###
-    #
-    # Allow the route to handle POST and GET info
-    # If POST:
-    #   Check if the username-password combo exists in the database
-    #   If it is, add userID to cache data, render home page template
-    #   Otherwise, return an error message to the user through the login template
-    # Else if GET:
-    #   Render the register template
-    #
-    ##################
-    return None
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        error = None
+
+        # Sanitize username and password
+
+        mycursor = mydb.cursor()
+
+        executeString = "SELECT * FROM ParkingLotSite.Users WHERE username = \"%s\"" % (username)
+        mycursor.execute(executeString)
+
+        user = mycursor.fetchone()
+
+        print(user)
+
+        mycursor.close()
+
+        #user[]: 0, ID; 1, username; 2, password
+
+        if user is None:
+            error = 'Incorrect username.'
+        elif not check_password_hash(user[2], password):
+            error = 'Incorrect password.'
+
+        if error is None:
+            session.clear()
+            session['user_id'] = user[0]
+            return redirect(url_for('index'))
+
+        flash(error)
+
+    return render_template('login.html', condition = "Login")
 
 # Route 3:  Settings
 #       3a: Give/Revoke Admin Privileges        (Owner)
@@ -181,12 +234,8 @@ def qrcreator():
 # Route 8:  Sign Out                            (All)
 @app.route('/logout')
 def logout():
-    ### Pseudocode ###
-    #
-    # Perform Flask logout work; Clear cache
-    #
-    ##################
-    return None
+    session.clear()
+    return redirect(url_for('index'))
 
 
 # Route 9: Grabs JSON data of our parking lot for AJAX in our website

@@ -115,3 +115,4 @@ dmypy.json
 *.iml
 
 *.pyc
+dbTest.py
