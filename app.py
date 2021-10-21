@@ -101,7 +101,7 @@ def register():
 
         flash(error)
 
-    return render_template('signinregister.html', condition = "Register")
+    return render_template('register.html', condition = "Register")
 
 # Route 2:  Log In                              (All)
 @app.route('/login', methods=('GET', 'POST'))
