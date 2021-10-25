@@ -12,6 +12,10 @@ app.config.from_mapping(
 #
 #   0. Parking Lots: 1 Hardcoded Parking Lot (Maybe more in the future)
 #       x, y, width, height, number, status
+#   For index 5, I suggest we set things as;
+#       -  If 0, it is green (Nobody is taking up the space)
+#       -  If > 0, it is red; taken up by someone logged in (Their session user ID is what we insert into the lot table)
+#       -  If -1, it is red; taken up by someone using the QR code, or not logged in (If they don't have a session user ID)
 lot1 = [[20, 20, 150, 100, 1, 1], [250, 250, 150, 100, 2, -1],[20, 400, 150, 100, 3, 1]]
 #
 #   1. SQL Values (DB, User, Pass, etc. Hardcoded in Python)
