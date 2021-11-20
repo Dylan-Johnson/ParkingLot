@@ -2,6 +2,8 @@ from flask import Flask, render_template, redirect, request, flash, url_for, ses
 from werkzeug.security import generate_password_hash, check_password_hash
 import json
 import mysql.connector
+import qrcode
+from PIL import Image
 
 app = Flask(__name__)
 app.config.from_mapping(
@@ -24,6 +26,9 @@ mydb = mysql.connector.connect(
   user="admin",
   password="group6csc440"
 )
+
+img_bg = Image.open('static/Assistance.PNG')
+
 #   1a. Schema under Schema.sql in Github
 #   2. Stored (Cookie) Data
 #       2a. UserID  (Got to remember how to do this)
@@ -281,18 +286,40 @@ def reportspace(space):
     return None
 
 # Route 7:  Generate QR Codes                   (Owner)
-@app.route('/qrcreator')
+def createQR(space):
+    # This data string comes from the current epoch time, the club (integer), and a simple hash of the department name
+    # Potentially this could create duplicates, and if that is the case we can try resorting to milliseconds
+    data = '127.0.0.1:5000/space/'+space+'/1'
+    qr = qrcode.QRCode(box_size=6)
+    # For now we add the file string as the embedded data. In the future, we'll have to add the link to
+    # our website instead
+    qr.add_data(data)
+    qr.make()
+    # We paste the qr code onto our image; The dimensions are liable to change
+    img_qr = qr.make_image()
+    pos = (int(img_bg.size[0] / 2 - img_qr.size[0] / 2), 520)
+    img_bg.paste(img_qr, pos)
+
+    # Save this image, send the result back to Jinja can receive it in HTML
+    fileString='static/'+space+'.png'
+    img_bg.save(fileString)
+    return fileString
+
+@app.route('/generateQR', methods = ['POST','GET'])
 def qrcreator():
-    ### Pseudocode ###
-    #
-    # Allow the route to handle POST and GET info
-    # If user is Owner:
-    #   If POST:
-    #       (QR Work...)
-    #   Else if GET:
-    #       Render QR template
-    ##################
-    return None
+    if request.method == 'POST':
+        space = request.form['space']
+
+        # Check if this club-department combination already exists within our 'database'
+        # If so, we'll let the user know so we don't make redundant QR codes
+        # Otherwise, continue with file creation
+        print("File creating...")
+        file = createQR(space)[7:-4]
+
+        return render_template('qrresult.html',file=file,space=space, result="New QR code created")
+    else:
+        space = request.args.get('space')
+        return render_template('qr.html')
 
 # Route 8:  Sign Out                            (All)
 @app.route('/logout')
