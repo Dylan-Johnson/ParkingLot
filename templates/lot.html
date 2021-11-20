@@ -1,12 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+{% extends 'base.html' %}
 
- <canvas id="myCanvas" width="600" height="600" style="border:1px solid #000000;"></canvas>
+{% block content %}
+
+<canvas id="myCanvas" width="600" height="600" style="border:1px solid #000000;"></canvas>
 
 
 <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
@@ -30,7 +26,7 @@ function drawSpace(element,color){
 
     // Push the element into a JS list to detect clicks
     elements.push({
-        colour: "color",
+        colour: color,
         width: width,
         height: height,
         top: y,
@@ -42,7 +38,7 @@ function drawSpace(element,color){
 
 // Coloring loop for available/taken parking spaces
 {% for x in list %}
-    {% if x[5] == -1 %}
+    {% if x[5] != 0 %}
         drawSpace({{ x }}, 'red')
     {% else %}
         drawSpace({{ x }}, 'green')
@@ -57,7 +53,26 @@ c.addEventListener('click', function(event) {
    elements.forEach(function(ele) {
       if (yVal > ele.top && yVal < ele.top + ele.height && xVal > ele.left && xVal < ele.left + ele.width) {
          // A redirect to take a parking lot space
-         window.location.href = "space/"+ele.id
+         //if
+         //window.location.href = "space/"+ele.id+"/1"
+
+          // If the element is taken, give the option to free
+          // If the element is free, give the option to take
+          if (ele.colour == "green"){
+if (confirm("Press OK to attempt claiming the space.")) {
+    window.location.href = "space/"+ele.id+"/1"
+  } else {
+    txt = "You pressed Cancel!";
+  }
+          }
+          else {
+if (confirm("Press OK to attempt freeing the space.")) {
+    window.location.href = "space/"+ele.id+"/2"
+  } else {
+    txt = "You pressed Cancel!";
+  }
+          }
+
       }
    });
 }, false);
@@ -87,5 +102,4 @@ c.addEventListener('click', function(event) {
     }, 1000);
 </script>
 
-</body>
-</html>
+{% endblock %}

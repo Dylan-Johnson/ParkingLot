@@ -16,7 +16,7 @@ app.config.from_mapping(
 #       -  If 0, it is green (Nobody is taking up the space)
 #       -  If > 0, it is red; taken up by someone logged in (Their session user ID is what we insert into the lot table)
 #       -  If -1, it is red; taken up by someone using the QR code, or not logged in (If they don't have a session user ID)
-lot1 = [[20, 20, 150, 100, 1, 1], [250, 250, 150, 100, 2, -1],[20, 400, 150, 100, 3, 1]]
+lot1 = [[20, 20, 150, 100, 1, 0], [250, 250, 150, 100, 2, 0],[20, 400, 150, 100, 3, 0]]
 #
 #   1. SQL Values (DB, User, Pass, etc. Hardcoded in Python)
 mydb = mysql.connector.connect(
@@ -43,6 +43,26 @@ mydb = mysql.connector.connect(
 #   1. JavaScript files (If not stored in the templates)                        (Optional)
 #   2. Placeholder QR images (Must be saved before being displayed              (Determined at run-time)
 
+# Function 0: Check for admin powers
+def adminCheck():
+    if session:
+        # Query with session['user_id']
+        try:
+            mycursor = mydb.cursor()
+
+            executeString = "SELECT * FROM ParkingLotSite.Privileges WHERE ID = %s" % (session['user_id'])
+            mycursor.execute(executeString)
+
+            user = mycursor.fetchone()
+
+            mycursor.close()
+            print("User",user)
+            if user is not None:
+                return True
+
+        except:
+            return False
+    return False
 
 # Route 0:  Home Page                           (All)
 @app.route('/index')
@@ -178,6 +198,8 @@ def parkinglot():
 # Route 5:  View Notifications                  (Admin)
 @app.route('/notifications')
 def notifications():
+    # We want to display all notifications for a parking lot if the user is an admin of that lot.
+    # Once a notification is handled, then we can remove it from the database
     ### Pseudocode ###
     #
     # Allow the route to handle POST and GET info
@@ -195,19 +217,56 @@ def notifications():
 # Route 6a; 6c
 #       6a. Claim Space                     (User) (Admin)
 #       6c. Free Space                      (User) (Admin)
-@app.route('/space/<space>')
-def space(space):
+@app.route('/space/<space>/<action>')
+def space(space, action):
     ### Pseudocode ###
     #
     # We need to work on the logic for this one; Shouldn't be too hard
     #
     ##################
-
-    # Grabs the space and changes the status
-    mySpace = int(space)
-    lot1[mySpace-1][5] *= -1
+    error = None
+    # Standard Case: Claiming a Space
+    # If they claim a space, check if it is occupied. If it is, the user must be an admin for anything to take place.
+    #   - If the admin changes the space, it is a non-signed-in user
+    #   - If a signed-in user claims a space, put their session id in there
+    #   - If a QR user claims a space, put -1
+    print("Action:",action)
+    if int(action) == 1:
+        print("A")
+        mySpace = int(space)
+        if lot1[mySpace-1][5] != 0 and adminCheck() is False:
+            print("Ba")
+            error = 'Error: Space already occupied. If there is a discrepancy, alert an admin'
+        if error is None:
+            print("B")
+            if adminCheck():
+                lot1[mySpace - 1][5] = -1
+            try:
+                lot1[mySpace-1][5] = session['user_id']
+            except:
+                lot1[mySpace-1][5] = -1
+        print(lot1)
+    # If they free a space, check if it is unoccupied. Flash an error if it is.
+    #   - If a user wants to free a space, they must be signed-in, and it must be their claimed space
+    #   - If the user is an admin they can overwrite any space
+    elif int(action) == 2:
+        mySpace = int(space)
+        if lot1[mySpace-1][5] == 0:
+            error = 'Error: Space is already free'
+        try:
+            #if session is None:
+            #    error = 'Error: Users not signed in must contact admins to free their spaces'
+            if lot1[mySpace-1][5] != session['user_id'] and adminCheck() is False:
+                error = 'Error: Cannot free another users space. Alert an admin.'
+            elif adminCheck():
+                lot1[mySpace-1][5]=0
+            elif lot1[mySpace-1][5] == session['user_id']:
+                lot1[mySpace-1][5]=0
+        except:
+            error = 'Error: Users not signed in must contact admins to free their spaces'
 
     #return space
+    flash(error)
     return redirect("/parkinglot")
 
 # Route 6b: Report Space                        (User)
