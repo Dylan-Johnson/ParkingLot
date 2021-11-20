@@ -163,6 +163,7 @@ def login():
         if error is None:
             session.clear()
             session['user_id'] = user[0]
+            session['username'] = user[1]
             return redirect(url_for('index'))
 
         flash(error)
