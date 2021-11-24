@@ -173,7 +173,7 @@ def login():
 # Route 3:  Settings
 #       3a: Give/Revoke Admin Privileges        (Owner)
 #       3b: See Admin Privileges                (All)
-@app.route('/settings')
+@app.route('/settings', methods=('GET','POST'))
 def settings():
     ### Pseudocode ###
     #
@@ -189,7 +189,62 @@ def settings():
     #   Render the template for settings
     #
     ##################
-    return None
+
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        permissionLevel = 2
+        error = None
+
+        mycursor = mydb.cursor()
+
+        ##temporary login until other methods finished
+
+        executeString = "SELECT * FROM ParkingLotSite.Users WHERE username = \"%s\"" %(username)
+        mycursor.execute(executeString)
+
+        user = mycursor.fetchone()
+        print(user)
+
+        mycursor.close()
+
+        if user is None:
+            error = 'Incorrect username.'
+        elif not check_password_hash(user[2], password):
+            error = 'Incorrect password.'
+        elif not (user[0] == permissionLevel):
+            error = 'Invalid Permission Level'
+
+        if error is None:
+            session.clear()
+            session['user_id'] = user[0]
+
+            userToGet = request.form["userID"]
+            newPermissionLevel = request.form["permission_level"]
+
+            mycursor = mydb.cursor()
+
+            executeString = "UPDATE ParkingLotSuite.Privileges SET privilege = \"%i\" WHERE ID = \"%s\"" %(newPermissionLevel, userToGet)
+            mycursor.execute(executeString)
+
+            mycursor.close()
+
+            return render_template('settings.html')
+
+    #print list of admin privileges
+    ##temp
+
+    #print the list of admins for the lot
+    mycursor = mydb.cursor()
+    executeString = "SELECT U.ID, U.username FROM ParkingLotSuite.Users as U JOIN ParkingLotSuite.Privileges as P ON U.ID = P.ID WHERE P.privilege = 1 and P.lot = 1"
+    mycursor.execute(executeString)
+
+    rows = mycursor.fetchall()
+
+    for row in rows:
+        print(row)
+
+    return render_template('settings.html')
 
 # Route 4:  View Parking Lot(s)                 (All)
 @app.route('/parkinglot')
