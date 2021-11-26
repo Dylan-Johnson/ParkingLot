@@ -48,7 +48,7 @@ img_bg = Image.open('static/Assistance.PNG')
 #   1. JavaScript files (If not stored in the templates)                        (Optional)
 #   2. Placeholder QR images (Must be saved before being displayed              (Determined at run-time)
 
-# Function 0: Check for admin powers
+# Function 0a: Check for admin powers
 def adminCheck():
     if session:
         # Query with session['user_id']
@@ -69,7 +69,28 @@ def adminCheck():
             return False
     return False
 
+# Function 0b: Check for owner powers
+def ownerCheck():
+    if session:
+        # Query with session['user_id']
+        try:
+            mycursor = mydb.cursor()
+            executeString = "SELECT * FROM ParkingLotSite.Privileges WHERE ID = %s and privilege = 2" % (session['user_id'])
+            mycursor.execute(executeString)
+
+            user = mycursor.fetchone()
+
+            mycursor.close()
+            print("User",user)
+            if user is not None:
+                return True
+
+        except:
+            return False
+    return False
+
 # Route 0:  Home Page                           (All)
+@app.route('/')
 @app.route('/index')
 def index():
     ### Pseudocode ###
@@ -259,6 +280,8 @@ def parkinglot():
 # Route 5:  View Notifications                  (Admin)
 @app.route('/notifications')
 def notifications():
+    if adminCheck() is False and ownerCheck() is False:
+        return "<p>Access Denied: Only Admins and Owners may view Notifications</p>"
     # We want to display all notifications for a parking lot if the user is an admin of that lot.
     # Once a notification is handled, then we can remove it from the database
     ### Pseudocode ###
@@ -273,7 +296,7 @@ def notifications():
     #       Render notifications template
     #
     ##################
-    return None
+    return render_template('base.html')
 
 # Route 6a; 6c
 #       6a. Claim Space                     (User) (Admin)
