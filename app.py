@@ -212,45 +212,47 @@ def settings():
     ##################
 
     if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-        permissionLevel = 2
+
         error = None
 
-        mycursor = mydb.cursor()
-
-        ##temporary login until other methods finished
-
-        executeString = "SELECT * FROM ParkingLotSite.Users WHERE username = \"%s\"" %(username)
-        mycursor.execute(executeString)
-
-        user = mycursor.fetchone()
-        print(user)
-
-        mycursor.close()
-
-        if user is None:
-            error = 'Incorrect username.'
-        elif not check_password_hash(user[2], password):
-            error = 'Incorrect password.'
-        elif not (user[0] == permissionLevel):
-            error = 'Invalid Permission Level'
-
-        if error is None:
-            session.clear()
-            session['user_id'] = user[0]
+        if(ownerCheck()):
 
             userToGet = request.form["userID"]
+            lotNum = request.form["lotNumber"]
             newPermissionLevel = request.form["permission_level"]
 
             mycursor = mydb.cursor()
 
-            executeString = "UPDATE ParkingLotSuite.Privileges SET privilege = \"%i\" WHERE ID = \"%s\"" %(newPermissionLevel, userToGet)
+            executeString = "SELECT * FROM ParkingLotSuite.Privileges WHERE ID = \"%s\"" % (userToGet)
             mycursor.execute(executeString)
+
+            row = mycursor.fetchone()
 
             mycursor.close()
 
-            return render_template('settings.html')
+            if row is None:
+
+                mycursor = mydb.cursor()
+
+                executeString = "INSERT INTO ParkingLotSuite.Privileges (ID, lot, privilege) VALUES (%i, %i, %i)" %(userToGet, lotNum, newPermissionLevel)
+
+                mycursor.close()
+
+            else:
+
+                mycursor = mydb.cursor()
+
+                executeString = "UPDATE ParkingLotSuite.Privileges SET privilege = \"%i\" WHERE ID = \"%s\"" %(newPermissionLevel, userToGet)
+
+                mycursor.close()
+
+        else:
+
+            error = "Invalid Permissions"
+
+        flash(error)
+
+        return render_template('settings.html')
 
     #print list of admin privileges
     ##temp
